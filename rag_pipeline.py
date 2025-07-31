@@ -258,21 +258,21 @@ Para resolver:
 
 **Token atual**: """ + token_value, {}
         
-        # Testa a conexão com o Replicate
-        connection_ok, connection_msg = test_replicate_connection()
+        # Testa a conexão com o Hugging Face
+        connection_ok, connection_msg = test_hf_connection()
         if not connection_ok:
-            return f"""❌ **Erro na conexão com Replicate!**
+            return f"""❌ **Erro na conexão com Hugging Face!**
 
 **Detalhes**: {connection_msg}
 
 **Possíveis causas**:
 1. Token inválido ou expirado
 2. Problema de conectividade
-3. Versão da biblioteca replicate
+3. Erro na API do Hugging Face
 
 **Token usado**: {token_value[:10]}...
 
-**Solução**: Verifique o token no [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)""", {}
+**Solução**: Verifique o token no [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)""", {}
         
         # Prepara o contexto
         context_texts = []
