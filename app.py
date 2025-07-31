@@ -159,7 +159,11 @@ def display_sidebar():
             
             # Informações da biblioteca
             import replicate
-            st.write(f"**Versão Replicate**: {replicate.__version__}")
+            try:
+                version = replicate.__version__
+            except AttributeError:
+                version = "Versão não disponível"
+            st.write(f"**Versão Replicate**: {version}")
         
         # Informações sobre arquivos processados
         if st.session_state.uploaded_files:
