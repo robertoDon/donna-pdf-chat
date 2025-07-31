@@ -9,16 +9,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
-import replicate
+import requests
 
-# Diagnóstico do token do Replicate
-def check_replicate_token():
-    """Verifica se o token do Replicate está configurado corretamente"""
+# Diagnóstico do token do Hugging Face
+def check_hf_token():
+    """Verifica se o token do Hugging Face está configurado corretamente"""
     # Tenta ler do Streamlit secrets primeiro
     try:
-        token_from_secrets = st.secrets.get("REPLICATE_API_TOKEN", None)
+        token_from_secrets = st.secrets.get("HUGGINGFACE_API_TOKEN", None)
         if token_from_secrets:
-            os.environ["REPLICATE_API_TOKEN"] = token_from_secrets
+            os.environ["HUGGINGFACE_API_TOKEN"] = token_from_secrets
             if st.session_state.get('debug_mode', False):
                 st.write("✅ Token carregado do Streamlit secrets")
     except Exception as e:
@@ -26,55 +26,32 @@ def check_replicate_token():
             st.write(f"⚠️ Erro ao ler secrets: {str(e)}")
     
     # Verifica se está no ambiente
-    token_configured = "REPLICATE_API_TOKEN" in os.environ
-    token_value = os.environ.get("REPLICATE_API_TOKEN", "Token não encontrado")
+    token_configured = "HUGGINGFACE_API_TOKEN" in os.environ
+    token_value = os.environ.get("HUGGINGFACE_API_TOKEN", "Token não encontrado")
     
     if st.session_state.get('debug_mode', False):
         st.write(f"Token configurado: {token_configured}")
         st.write(f"Token valor: {token_value[:10]}..." if len(token_value) > 10 else token_value)
-        st.write(f"Variáveis de ambiente: {list(os.environ.keys()) if 'REPLICATE' in str(os.environ.keys()) else 'Nenhuma variável REPLICATE encontrada'}")
     
     return token_configured, token_value
 
-def get_replicate_client():
-    """Cria e testa o cliente Replicate"""
-    token = os.environ.get("REPLICATE_API_TOKEN")
-    if not token:
-        raise Exception("Token REPLICATE_API_TOKEN não encontrado no ambiente")
-    
+def test_hf_connection():
+    """Testa a conexão com o Hugging Face"""
     try:
-        client = replicate.Client(api_token=token)
+        token = os.environ.get("HUGGINGFACE_API_TOKEN")
+        if not token:
+            return False, "Token não encontrado"
         
-        # Teste básico do cliente
-        if st.session_state.get('debug_mode', False):
-            st.write(f"Cliente criado com token: {token[:10]}...")
+        # Teste simples da API
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get("https://huggingface.co/api/models", headers=headers)
         
-        return client
-    except Exception as e:
-        raise Exception(f"Erro ao criar cliente Replicate: {str(e)}")
-
-def test_replicate_connection():
-    """Testa a conexão com o Replicate"""
-    try:
-        client = get_replicate_client()
-        
-        # Teste simples com modelo hello-world
-        versions = list(client.models.get("replicate/hello-world").versions.list())
-        
-        if st.session_state.get('debug_mode', False):
-            st.write(f"Teste Replicate OK: {len(versions)} versões encontradas")
-        
-        # Teste específico com o modelo que vamos usar
-        try:
-            from config import LLM_MODEL
-            model_versions = list(client.models.get(LLM_MODEL).versions.list())
+        if response.status_code == 200:
             if st.session_state.get('debug_mode', False):
-                st.write(f"Modelo {LLM_MODEL} OK: {len(model_versions)} versões encontradas")
-        except Exception as model_error:
-            if st.session_state.get('debug_mode', False):
-                st.write(f"Erro no modelo {LLM_MODEL}: {str(model_error)}")
-        
-        return True, "Conexão OK"
+                st.write("✅ Conexão Hugging Face OK")
+            return True, "Conexão OK"
+        else:
+            return False, f"Erro HTTP: {response.status_code}"
     except Exception as e:
         return False, f"Erro na conexão: {str(e)}"
 # Configurações inline para evitar problemas de import
@@ -83,7 +60,7 @@ CHUNK_OVERLAP = 200
 MAX_TOKENS_CONTEXT = 1500
 TOP_K_RESULTS = 5
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_MODEL = "openai/gpt2"
+LLM_MODEL = "microsoft/DialoGPT-medium"  # Modelo mais simples e confiável
 LLM_TEMPERATURE = 0.7
 LLM_MAX_TOKENS = 1000
 INDEX_FOLDER = "vector_index"
@@ -320,62 +297,61 @@ Para resolver:
         prompt = SYSTEM_PROMPT.format(context=context, question=query)
         
         try:
-            # Gera resposta usando Replicate
+            # Gera resposta usando Hugging Face Inference API
             start_time = time.time()
             
-            # Usa o cliente Replicate já testado
-            replicate_client = get_replicate_client()
+            # Verifica token
+            token_configured, token_value = check_hf_token()
+            if not token_configured:
+                return "❌ Token do Hugging Face não configurado. Configure HUGGINGFACE_API_TOKEN no Streamlit Cloud.", {}
             
-            # Tenta o modelo principal primeiro
-            try:
-                output = replicate_client.run(
-                    LLM_MODEL,
-                    input={
-                        "prompt": prompt,
-                        "temperature": LLM_TEMPERATURE,
-                        "max_tokens": LLM_MAX_TOKENS,
-                        "top_p": 0.9,
-                        "top_k": 50
-                    }
-                )
-            except Exception as model_error:
-                if st.session_state.get('debug_mode', False):
-                    st.write(f"⚠️ Erro no modelo {LLM_MODEL}: {str(model_error)}")
-                
-                # Fallback para modelo alternativo
-                fallback_model = "openai/gpt2"
-                if st.session_state.get('debug_mode', False):
-                    st.write(f"🔄 Tentando modelo alternativo: {fallback_model}")
-                
-                output = replicate_client.run(
-                    fallback_model,
-                    input={
-                        "prompt": prompt,
-                        "temperature": LLM_TEMPERATURE,
-                        "max_tokens": LLM_MAX_TOKENS,
-                        "top_p": 0.9,
-                        "top_k": 50
-                    }
-                )
+            # Chama a API do Hugging Face
+            headers = {
+                "Authorization": f"Bearer {token_value}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": LLM_MAX_TOKENS,
+                    "temperature": LLM_TEMPERATURE,
+                    "do_sample": True,
+                    "top_p": 0.9
+                }
+            }
+            
+            response = requests.post(
+                f"https://api-inference.huggingface.co/models/{LLM_MODEL}",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
             
             response_time = time.time() - start_time
             
-            # Processa a resposta
-            if isinstance(output, list):
-                response = "".join(output)
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    response_text = result[0].get('generated_text', '')
+                    # Remove o prompt original da resposta
+                    if prompt in response_text:
+                        response_text = response_text.replace(prompt, '').strip()
+                else:
+                    response_text = str(result)
             else:
-                response = str(output)
+                raise Exception(f"Erro HTTP {response.status_code}: {response.text}")
             
             # Estatísticas
             stats = {
                 'response_time': round(response_time, 2),
                 'context_tokens': context_tokens,
-                'response_tokens': count_tokens(response),
+                'response_tokens': count_tokens(response_text),
                 'sources_used': sources_used,
                 'chunks_retrieved': len(context_docs)
             }
             
-            return response, stats
+            return response_text, stats
             
         except Exception as e:
             error_msg = f"Erro ao gerar resposta: {str(e)}"
@@ -386,7 +362,7 @@ Para resolver:
                 st.write(f"**Tipo de erro**: {type(e).__name__}")
             
             if "API token" in str(e).lower() or "404" in str(e) or "authentication" in str(e).lower():
-                error_msg = f"""❌ **Erro na API do Replicate!**
+                error_msg = f"""❌ **Erro na API do Hugging Face!**
 
 **Detalhes**: {str(e)}
 
@@ -395,10 +371,10 @@ Para resolver:
 **Possíveis causas**:
 1. Token expirado ou inválido
 2. Problema de conectividade
-3. Erro na API do Replicate
+3. Erro na API do Hugging Face
 
 **Solução**: 
-1. Verifique o token em [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)
+1. Verifique o token em [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
 2. Gere um novo token se necessário
 3. Atualize no Streamlit Cloud (Settings → Secrets)
 """
