@@ -22,6 +22,38 @@ def check_replicate_token():
         st.write(f"Token valor: {token_value[:10]}..." if len(token_value) > 10 else token_value)
     
     return token_configured, token_value
+
+def get_replicate_client():
+    """Cria e testa o cliente Replicate"""
+    token = os.environ.get("REPLICATE_API_TOKEN")
+    if not token:
+        raise Exception("Token REPLICATE_API_TOKEN não encontrado no ambiente")
+    
+    try:
+        client = replicate.Client(api_token=token)
+        
+        # Teste básico do cliente
+        if st.session_state.get('debug_mode', False):
+            st.write(f"Cliente criado com token: {token[:10]}...")
+        
+        return client
+    except Exception as e:
+        raise Exception(f"Erro ao criar cliente Replicate: {str(e)}")
+
+def test_replicate_connection():
+    """Testa a conexão com o Replicate"""
+    try:
+        client = get_replicate_client()
+        
+        # Teste simples com modelo hello-world
+        versions = list(client.models.get("replicate/hello-world").versions.list())
+        
+        if st.session_state.get('debug_mode', False):
+            st.write(f"Teste Replicate OK: {len(versions)} versões encontradas")
+        
+        return True, "Conexão OK"
+    except Exception as e:
+        return False, f"Erro na conexão: {str(e)}"
 from config import (
     CHUNK_SIZE, CHUNK_OVERLAP, MAX_TOKENS_CONTEXT, TOP_K_RESULTS,
     EMBEDDING_MODEL, LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS,
@@ -207,6 +239,22 @@ Para resolver:
 
 **Token atual**: """ + token_value, {}
         
+        # Testa a conexão com o Replicate
+        connection_ok, connection_msg = test_replicate_connection()
+        if not connection_ok:
+            return f"""❌ **Erro na conexão com Replicate!**
+
+**Detalhes**: {connection_msg}
+
+**Possíveis causas**:
+1. Token inválido ou expirado
+2. Problema de conectividade
+3. Versão da biblioteca replicate
+
+**Token usado**: {token_value[:10]}...
+
+**Solução**: Verifique o token no [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)""", {}
+        
         # Prepara o contexto
         context_texts = []
         sources_used = []
@@ -233,8 +281,8 @@ Para resolver:
             # Gera resposta usando Replicate
             start_time = time.time()
             
-            # Usa o cliente Replicate com token da variável de ambiente
-            replicate_client = replicate.Client(api_token=os.environ["REPLICATE_API_TOKEN"])
+            # Usa o cliente Replicate já testado
+            replicate_client = get_replicate_client()
             
             output = replicate_client.run(
                 LLM_MODEL,

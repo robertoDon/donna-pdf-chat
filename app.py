@@ -147,10 +147,19 @@ def display_sidebar():
         st.session_state.debug_mode = debug_mode
         
         if debug_mode:
-            from rag_pipeline import check_replicate_token
+            from rag_pipeline import check_replicate_token, test_replicate_connection
             token_configured, token_value = check_replicate_token()
             st.write(f"**Token configurado**: {token_configured}")
             st.write(f"**Token**: {token_value[:10]}..." if len(token_value) > 10 else token_value)
+            
+            # Testa conexão com Replicate
+            connection_ok, connection_msg = test_replicate_connection()
+            st.write(f"**Conexão Replicate**: {connection_ok}")
+            st.write(f"**Status**: {connection_msg}")
+            
+            # Informações da biblioteca
+            import replicate
+            st.write(f"**Versão Replicate**: {replicate.__version__}")
         
         # Informações sobre arquivos processados
         if st.session_state.uploaded_files:
