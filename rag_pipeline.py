@@ -51,6 +51,16 @@ def test_replicate_connection():
         if st.session_state.get('debug_mode', False):
             st.write(f"Teste Replicate OK: {len(versions)} versões encontradas")
         
+        # Teste específico com o modelo que vamos usar
+        try:
+            from config import LLM_MODEL
+            model_versions = list(client.models.get(LLM_MODEL).versions.list())
+            if st.session_state.get('debug_mode', False):
+                st.write(f"Modelo {LLM_MODEL} OK: {len(model_versions)} versões encontradas")
+        except Exception as model_error:
+            if st.session_state.get('debug_mode', False):
+                st.write(f"Erro no modelo {LLM_MODEL}: {str(model_error)}")
+        
         return True, "Conexão OK"
     except Exception as e:
         return False, f"Erro na conexão: {str(e)}"
@@ -316,15 +326,28 @@ Para resolver:
             
         except Exception as e:
             error_msg = f"Erro ao gerar resposta: {str(e)}"
-            if "API token" in str(e).lower() or "404" in str(e):
-                error_msg = """Erro: Token da API Replicate não configurado ou inválido.
+            
+            # Log detalhado para debug
+            if st.session_state.get('debug_mode', False):
+                st.write(f"**Erro detalhado**: {str(e)}")
+                st.write(f"**Tipo de erro**: {type(e).__name__}")
+            
+            if "API token" in str(e).lower() or "404" in str(e) or "authentication" in str(e).lower():
+                error_msg = f"""❌ **Erro na API do Replicate!**
 
-Para resolver:
-1. Configure REPLICATE_API_TOKEN no Streamlit Cloud (Settings → Secrets)
-2. Ou use a aplicação sem IA (apenas para visualizar documentos)
+**Detalhes**: {str(e)}
 
-Exemplo de configuração no Secrets:
-REPLICATE_API_TOKEN = "seu_token_aqui"
+**Token usado**: {token_value[:10]}...
+
+**Possíveis causas**:
+1. Token expirado ou inválido
+2. Problema de conectividade
+3. Erro na API do Replicate
+
+**Solução**: 
+1. Verifique o token em [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)
+2. Gere um novo token se necessário
+3. Atualize no Streamlit Cloud (Settings → Secrets)
 """
             
             return error_msg, {}
