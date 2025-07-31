@@ -10,6 +10,18 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.schema import Document
 import replicate
+
+# Diagnóstico do token do Replicate
+def check_replicate_token():
+    """Verifica se o token do Replicate está configurado corretamente"""
+    token_configured = "REPLICATE_API_TOKEN" in os.environ
+    token_value = os.environ.get("REPLICATE_API_TOKEN", "Token não encontrado")
+    
+    if st.session_state.get('debug_mode', False):
+        st.write(f"Token configurado: {token_configured}")
+        st.write(f"Token valor: {token_value[:10]}..." if len(token_value) > 10 else token_value)
+    
+    return token_configured, token_value
 from config import (
     CHUNK_SIZE, CHUNK_OVERLAP, MAX_TOKENS_CONTEXT, TOP_K_RESULTS,
     EMBEDDING_MODEL, LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS,
@@ -182,6 +194,19 @@ class RAGPipeline:
         if not context_docs:
             return "Desculpe, não encontrei informações relevantes nos documentos para responder sua pergunta. Por favor, verifique se os documentos contêm informações sobre o tema.", {}
         
+        # Verifica se o token do Replicate está configurado
+        token_configured, token_value = check_replicate_token()
+        
+        if not token_configured:
+            return """❌ **Token do Replicate não configurado!**
+
+Para resolver:
+1. No Streamlit Cloud, vá em **Settings → Secrets**
+2. Adicione: `REPLICATE_API_TOKEN = "seu_token_aqui"`
+3. Clique em **Save** e aguarde ~1 minuto
+
+**Token atual**: """ + token_value, {}
+        
         # Prepara o contexto
         context_texts = []
         sources_used = []
@@ -208,7 +233,10 @@ class RAGPipeline:
             # Gera resposta usando Replicate
             start_time = time.time()
             
-            output = replicate.run(
+            # Usa o cliente Replicate com token da variável de ambiente
+            replicate_client = replicate.Client(api_token=os.environ["REPLICATE_API_TOKEN"])
+            
+            output = replicate_client.run(
                 LLM_MODEL,
                 input={
                     "prompt": prompt,

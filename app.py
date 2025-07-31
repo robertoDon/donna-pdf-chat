@@ -141,6 +141,17 @@ def display_sidebar():
             st.session_state.uploaded_files = []
             st.rerun()
         
+        # Debug mode
+        st.markdown("#### 🔍 Debug")
+        debug_mode = st.checkbox("Modo Debug", help="Mostra informações de diagnóstico")
+        st.session_state.debug_mode = debug_mode
+        
+        if debug_mode:
+            from rag_pipeline import check_replicate_token
+            token_configured, token_value = check_replicate_token()
+            st.write(f"**Token configurado**: {token_configured}")
+            st.write(f"**Token**: {token_value[:10]}..." if len(token_value) > 10 else token_value)
+        
         # Informações sobre arquivos processados
         if st.session_state.uploaded_files:
             st.markdown("#### 📋 Arquivos Processados")
