@@ -324,7 +324,7 @@ Para resolver:
                     st.write(f"⚠️ Erro no modelo {LLM_MODEL}: {str(model_error)}")
                 
                 # Fallback para modelo alternativo
-                fallback_model = "a16z-infra/llama-2-7b-chat"
+                fallback_model = "openai/gpt2"
                 if st.session_state.get('debug_mode', False):
                     st.write(f"🔄 Tentando modelo alternativo: {fallback_model}")
                 
