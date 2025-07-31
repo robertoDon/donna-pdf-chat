@@ -245,15 +245,15 @@ class RAGPipeline:
         if not context_docs:
             return "Desculpe, não encontrei informações relevantes nos documentos para responder sua pergunta. Por favor, verifique se os documentos contêm informações sobre o tema.", {}
         
-        # Verifica se o token do Replicate está configurado
-        token_configured, token_value = check_replicate_token()
+        # Verifica se o token do Hugging Face está configurado
+        token_configured, token_value = check_hf_token()
         
         if not token_configured:
-            return """❌ **Token do Replicate não configurado!**
+            return """❌ **Token do Hugging Face não configurado!**
 
 Para resolver:
 1. No Streamlit Cloud, vá em **Settings → Secrets**
-2. Adicione: `REPLICATE_API_TOKEN = "seu_token_aqui"`
+2. Adicione: `HUGGINGFACE_API_TOKEN = "seu_token_aqui"`
 3. Clique em **Save** e aguarde ~1 minuto
 
 **Token atual**: """ + token_value, {}
