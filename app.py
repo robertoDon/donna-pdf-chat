@@ -5,7 +5,11 @@ from datetime import datetime
 from typing import List, Dict
 import json
 
-from config import APP_TITLE, APP_DESCRIPTION, UPLOAD_FOLDER
+# Configurações da aplicação (inline para evitar problemas de import)
+APP_TITLE = "PDF Chat RAG"
+APP_DESCRIPTION = "Chat com IA baseado em seus documentos PDF"
+UPLOAD_FOLDER = "uploads"
+
 from rag_pipeline import RAGPipeline
 from utils import create_directories, validate_pdf_file, get_file_info
 
