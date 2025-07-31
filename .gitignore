@@ -44,8 +44,9 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Streamlit
-.streamlit/
+# Streamlit (mantendo config.toml)
+.streamlit/*
+!.streamlit/config.toml
 
 # Project specific
 uploads/
