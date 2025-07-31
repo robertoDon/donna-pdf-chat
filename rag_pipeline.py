@@ -143,7 +143,11 @@ class RAGPipeline:
         """Carrega o índice vetorial existente"""
         try:
             if os.path.exists(INDEX_FOLDER) and os.listdir(INDEX_FOLDER):
-                self.vector_store = FAISS.load_local(INDEX_FOLDER, self.embeddings)
+                self.vector_store = FAISS.load_local(
+                    INDEX_FOLDER, 
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
                 st.success("Índice vetorial carregado com sucesso!")
                 return True
         except Exception as e:
@@ -236,8 +240,16 @@ class RAGPipeline:
             
         except Exception as e:
             error_msg = f"Erro ao gerar resposta: {str(e)}"
-            if "API token" in str(e).lower():
-                error_msg = "Erro: Token da API Replicate não configurado. Configure a variável REPLICATE_API_TOKEN."
+            if "API token" in str(e).lower() or "404" in str(e):
+                error_msg = """Erro: Token da API Replicate não configurado ou inválido.
+
+Para resolver:
+1. Configure REPLICATE_API_TOKEN no Streamlit Cloud (Settings → Secrets)
+2. Ou use a aplicação sem IA (apenas para visualizar documentos)
+
+Exemplo de configuração no Secrets:
+REPLICATE_API_TOKEN = "seu_token_aqui"
+"""
             
             return error_msg, {}
     
