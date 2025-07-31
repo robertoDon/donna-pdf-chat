@@ -107,7 +107,7 @@ def display_sidebar():
         st.markdown("### ⚙️ Configurações")
         
         # Upload de arquivos
-        st.markdown("#### 📁 Upload de PDFs")
+        st.markdown("#### 📁 Upload de PDF")
         uploaded_files = st.file_uploader(
             "Selecione arquivos PDF",
             type=['pdf'],
