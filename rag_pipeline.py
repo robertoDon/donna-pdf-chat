@@ -14,12 +14,25 @@ import replicate
 # Diagnóstico do token do Replicate
 def check_replicate_token():
     """Verifica se o token do Replicate está configurado corretamente"""
+    # Tenta ler do Streamlit secrets primeiro
+    try:
+        token_from_secrets = st.secrets.get("REPLICATE_API_TOKEN", None)
+        if token_from_secrets:
+            os.environ["REPLICATE_API_TOKEN"] = token_from_secrets
+            if st.session_state.get('debug_mode', False):
+                st.write("✅ Token carregado do Streamlit secrets")
+    except Exception as e:
+        if st.session_state.get('debug_mode', False):
+            st.write(f"⚠️ Erro ao ler secrets: {str(e)}")
+    
+    # Verifica se está no ambiente
     token_configured = "REPLICATE_API_TOKEN" in os.environ
     token_value = os.environ.get("REPLICATE_API_TOKEN", "Token não encontrado")
     
     if st.session_state.get('debug_mode', False):
         st.write(f"Token configurado: {token_configured}")
         st.write(f"Token valor: {token_value[:10]}..." if len(token_value) > 10 else token_value)
+        st.write(f"Variáveis de ambiente: {list(os.environ.keys()) if 'REPLICATE' in str(os.environ.keys()) else 'Nenhuma variável REPLICATE encontrada'}")
     
     return token_configured, token_value
 
@@ -294,16 +307,37 @@ Para resolver:
             # Usa o cliente Replicate já testado
             replicate_client = get_replicate_client()
             
-            output = replicate_client.run(
-                LLM_MODEL,
-                input={
-                    "prompt": prompt,
-                    "temperature": LLM_TEMPERATURE,
-                    "max_tokens": LLM_MAX_TOKENS,
-                    "top_p": 0.9,
-                    "top_k": 50
-                }
-            )
+            # Tenta o modelo principal primeiro
+            try:
+                output = replicate_client.run(
+                    LLM_MODEL,
+                    input={
+                        "prompt": prompt,
+                        "temperature": LLM_TEMPERATURE,
+                        "max_tokens": LLM_MAX_TOKENS,
+                        "top_p": 0.9,
+                        "top_k": 50
+                    }
+                )
+            except Exception as model_error:
+                if st.session_state.get('debug_mode', False):
+                    st.write(f"⚠️ Erro no modelo {LLM_MODEL}: {str(model_error)}")
+                
+                # Fallback para modelo alternativo
+                fallback_model = "meta/llama-2-7b-chat"
+                if st.session_state.get('debug_mode', False):
+                    st.write(f"🔄 Tentando modelo alternativo: {fallback_model}")
+                
+                output = replicate_client.run(
+                    fallback_model,
+                    input={
+                        "prompt": prompt,
+                        "temperature": LLM_TEMPERATURE,
+                        "max_tokens": LLM_MAX_TOKENS,
+                        "top_p": 0.9,
+                        "top_k": 50
+                    }
+                )
             
             response_time = time.time() - start_time
             
