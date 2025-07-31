@@ -19,7 +19,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIMENSION = 384
 
 # Configurações do LLM
-LLM_MODEL = "replicate/llama-2-7b-chat"  # Modelo funcional e estável
+LLM_MODEL = "replicate/llama-2-7b-chat"
 LLM_TEMPERATURE = 0.7
 LLM_MAX_TOKENS = 1000
 
@@ -28,7 +28,7 @@ UPLOAD_FOLDER = "uploads"
 CACHE_FOLDER = "cache"
 INDEX_FOLDER = "vector_index"
 
-# Configurações do Replicate (opcional)
+# Configurações do Replicate
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
 
 # Configurações da interface
@@ -36,7 +36,7 @@ MAX_FILE_SIZE_MB = 50
 SUPPORTED_FILE_TYPES = ["pdf"]
 
 # Mensagens do sistema
-SYSTEM_PROMPT = """Você é um assistente especializado em responder perguntas baseado exclusivamente no conteúdo dos documentos PDF fornecidos. 
+SYSTEM_PROMPT = """Você é um assistente especializado em responder perguntas baseado exclusivamente no conteúdo dos documentos PDF fornecidos.
 
 IMPORTANTE:
 - Responda APENAS com base no conteúdo dos documentos
