@@ -19,7 +19,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIMENSION = 384
 
 # Configurações do LLM
-LLM_MODEL = "replicate/llama-2-7b-chat"
+LLM_MODEL = "a16z-infra/llama-2-7b-chat"
 LLM_TEMPERATURE = 0.7
 LLM_MAX_TOKENS = 1000
 
