@@ -77,11 +77,30 @@ def test_replicate_connection():
         return True, "Conexão OK"
     except Exception as e:
         return False, f"Erro na conexão: {str(e)}"
-from config import (
-    CHUNK_SIZE, CHUNK_OVERLAP, MAX_TOKENS_CONTEXT, TOP_K_RESULTS,
-    EMBEDDING_MODEL, LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS,
-    SYSTEM_PROMPT, INDEX_FOLDER
-)
+# Configurações inline para evitar problemas de import
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+MAX_TOKENS_CONTEXT = 1500
+TOP_K_RESULTS = 5
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+LLM_MODEL = "openai/gpt2"
+LLM_TEMPERATURE = 0.7
+LLM_MAX_TOKENS = 1000
+INDEX_FOLDER = "vector_index"
+
+SYSTEM_PROMPT = """Você é um assistente especializado em responder perguntas baseado exclusivamente no conteúdo dos documentos PDF fornecidos.
+
+IMPORTANTE:
+- Responda APENAS com base no conteúdo dos documentos
+- Se a informação não estiver nos documentos, diga claramente que não tem essa informação
+- Cite sempre a fonte (nome do arquivo e página quando possível)
+- Seja preciso e fiel ao conteúdo original
+- Use linguagem clara e profissional
+
+Contexto dos documentos:
+{context}
+
+Pergunta do usuário: {question}"""
 from utils import (
     extract_text_from_pdf, get_file_hash, save_cache_data, 
     load_cache_data, count_tokens, truncate_text_by_tokens,
